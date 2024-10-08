@@ -17,8 +17,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             "WHERE (:users IS NULL OR e.initiator.id IN :users) " +
             "AND (:states IS NULL OR e.state IN :states) " +
             "AND (:categories IS NULL OR e.category.id IN :categories) " +
-            "AND (COALESCE(:rangeStart, null) IS NULL OR e.eventDate > :rangeStart) " +
-            "AND (COALESCE(:rangeEnd, null) IS NULL OR e.eventDate < :rangeEnd)")
+            "AND (CAST(:rangeStart AS date) IS NULL OR e.eventDate > :rangeStart) " +
+            "AND (CAST(:rangeEnd AS date) IS NULL OR e.eventDate < :rangeEnd)")
     List<Event> getEventsAdmin(List<Long> users, List<EventState> states, List<Long> categories,
                                Instant rangeStart, Instant rangeEnd, Pageable page);
 
@@ -33,8 +33,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             "(UPPER(e.annotation) LIKE UPPER(CONCAT('%', :text, '%')) OR UPPER(e.description) LIKE UPPER(CONCAT('%', :text, '%'))))" +
             "AND (:categories IS NULL OR e.category.id IN :categories) " +
             "AND (:paid IS NULL OR e.paid = :paid) " +
-            "AND (COALESCE(:rangeStart, null) IS NULL OR e.eventDate > :rangeStart) " +
-            "AND (COALESCE(:rangeEnd, null) IS NULL OR e.eventDate < :rangeEnd) " +
+            "AND (CAST(:rangeStart AS date) IS NULL OR e.eventDate > :rangeStart) " +
+            "AND (CAST(:rangeEnd AS date) IS NULL OR e.eventDate < :rangeEnd) " +
             "AND (:onlyAvailable IS NULL OR e.confirmedRequests < e.participantLimit OR e.participantLimit = 0)")
     List<Event> findPublished(Set<Long> ids, String text, List<Long> categories, Boolean paid, Instant rangeStart,
                               Instant rangeEnd, Boolean onlyAvailable, Pageable page);
