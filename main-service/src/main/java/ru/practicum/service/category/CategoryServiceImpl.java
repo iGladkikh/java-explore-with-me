@@ -5,6 +5,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import ru.practicum.common.PaginationUtil;
 import ru.practicum.dto.category.CategoryCreateDto;
 import ru.practicum.dto.category.CategoryDto;
 import ru.practicum.exception.DataConflictException;
@@ -27,7 +28,8 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public List<CategoryDto> findAll(Pageable page) {
+    public List<CategoryDto> findAll(Integer from, Integer size) {
+        Pageable page = PaginationUtil.getPage(from, size);
         return mapper.toDto(repository.findAll(page));
     }
 

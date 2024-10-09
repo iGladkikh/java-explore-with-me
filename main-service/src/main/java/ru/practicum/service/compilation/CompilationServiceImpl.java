@@ -2,6 +2,7 @@ package ru.practicum.service.compilation;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import ru.practicum.common.PaginationUtil;
 import ru.practicum.common.StatisticUtil;
 import ru.practicum.dto.compilation.CompilationCreateDto;
 import ru.practicum.dto.compilation.CompilationDto;
@@ -30,7 +31,8 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
-    public List<CompilationDto> findPinned(Boolean pinned, Pageable page) {
+    public List<CompilationDto> findPinned(Boolean pinned, Integer from, Integer size) {
+        Pageable page = PaginationUtil.getPage(from, size);
         return mapper.toDto(compilationRepository.findAllByPinned(pinned, page));
     }
 
@@ -50,8 +52,10 @@ public class CompilationServiceImpl implements CompilationService {
 
         if (dto.getEvents() != null) {
             List<Event> events = eventRepository.findAllById(dto.getEvents());
+            if (!events.isEmpty()) {
+                statisticUtil.fillEventsViews(events);
+            }
             compilation.setEvents(events);
-            events.forEach(statisticUtil::fillEventViews);
         }
 
         return mapper.toDto(compilationRepository.save(compilation));
@@ -73,8 +77,10 @@ public class CompilationServiceImpl implements CompilationService {
 
         if (dto.getEvents() != null) {
             List<Event> events = eventRepository.findAllById(dto.getEvents());
+            if (!events.isEmpty()) {
+                statisticUtil.fillEventsViews(events);
+            }
             oldCompilation.setEvents(events);
-            events.forEach(statisticUtil::fillEventViews);
         }
 
         return mapper.toDto(compilationRepository.save(oldCompilation));

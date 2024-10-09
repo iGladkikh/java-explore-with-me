@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.EndpointStatisticDto;
+import ru.practicum.common.PaginationUtil;
 import ru.practicum.common.StatisticUtil;
 import ru.practicum.common.TimeUtil;
 import ru.practicum.dto.event.EventCreateDto;
@@ -15,11 +16,7 @@ import ru.practicum.dto.event.EventShortDto;
 import ru.practicum.dto.event.EventUpdateByAdminDto;
 import ru.practicum.dto.event.EventUpdateByUserDto;
 import ru.practicum.dto.event.EventUpdateDto;
-import ru.practicum.dto.request.RequestDto;
-import ru.practicum.dto.request.RequestUpdateStatusDto;
-import ru.practicum.dto.request.RequestUpdatedResultDto;
 import ru.practicum.exception.BadRequestException;
-import ru.practicum.exception.DataConflictException;
 import ru.practicum.exception.DataNotFoundException;
 import ru.practicum.exception.ForbiddenException;
 import ru.practicum.mapper.EventMapper;
@@ -27,11 +24,9 @@ import ru.practicum.mapper.RequestMapper;
 import ru.practicum.model.Category;
 import ru.practicum.model.Event;
 import ru.practicum.model.Location;
-import ru.practicum.model.Request;
 import ru.practicum.model.User;
 import ru.practicum.model.enums.EventSort;
 import ru.practicum.model.enums.EventState;
-import ru.practicum.model.enums.RequestState;
 import ru.practicum.repository.CategoryRepository;
 import ru.practicum.repository.EventRepository;
 import ru.practicum.repository.LocationRepository;
@@ -40,11 +35,9 @@ import ru.practicum.repository.UserRepository;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -62,7 +55,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public List<EventFullDto> findManyForAdmin(List<Long> users, List<EventState> states, List<Long> categories,
-                                               Instant rangeStart, Instant rangeEnd, Pageable page) {
+                                               Instant rangeStart, Instant rangeEnd, Integer from, Integer size) {
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
             throw new BadRequestException("Incorrect request: start of the event is after end of the event");
         }
@@ -74,8 +67,9 @@ public class EventServiceImpl implements EventService {
         if (states != null && states.isEmpty()) {
             states = null;
         }
+        Pageable page = PageRequest.of(from, size);
         List<Event> events = repository.getEventsAdmin(users, states, categories, rangeStart, rangeEnd, page);
-        events.forEach(statisticUtil::fillEventViews);
+        statisticUtil.fillEventsViews(TimeUtil.instantToLocalDateTime(rangeStart), events);
 
         return eventMapper.toFullDto(events);
     }
@@ -102,16 +96,17 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        Event updatedEvent = repository.save(update(oldEvent, dto));
+        Event updatedEvent = repository.save(fillUpdatedFields(oldEvent, dto));
         statisticUtil.fillEventViews(updatedEvent);
         return eventMapper.toFullDto(updatedEvent);
     }
 
     @Override
-    public List<EventShortDto> findManyForUser(Long userId, Pageable page) {
+    public List<EventShortDto> findManyForUser(Long userId, Integer from, Integer size) {
         checkUserIsExistsAndGet(userId);
+        Pageable page = PageRequest.of(from, size);
         List<Event> events = repository.findAllByInitiatorId(userId, page);
-        events.forEach(statisticUtil::fillEventViews);
+        statisticUtil.fillEventsViews(events);
         return eventMapper.toShortDto(events);
     }
 
@@ -176,66 +171,9 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        Event updatedEvent = repository.save(update(oldEvent, dto));
+        Event updatedEvent = repository.save(fillUpdatedFields(oldEvent, dto));
         statisticUtil.fillEventViews(updatedEvent);
         return eventMapper.toFullDto(updatedEvent);
-    }
-
-    @Override
-    public List<RequestDto> getEventRequests(Long userId, Long eventId) {
-        checkUserIsExistsAndGet(userId);
-        checkEventIsExistsAndGet(eventId);
-
-        return requestMapper.toDto(requestRepository.findAllByEventId(eventId));
-    }
-
-
-    @Override
-    public RequestUpdatedResultDto updateRequestStatus(Long userId, Long eventId, RequestUpdateStatusDto dto) {
-        checkUserIsExistsAndGet(userId);
-
-        Event event = checkEventIsExistsAndGet(eventId);
-        List<Request> requests = requestRepository.findAllByIdIn(dto.getRequestIds());
-
-        List<RequestDto> confirmedRequests = new ArrayList<>();
-        if (!event.getRequestModeration() || event.getParticipantLimit() == 0) {
-            for (Request request : requests) {
-                request.setState(RequestState.CONFIRMED);
-                confirmedRequests.add(requestMapper.toDto(requestRepository.save(request)));
-            }
-            return new RequestUpdatedResultDto(confirmedRequests, new ArrayList<>());
-        }
-
-        if (event.getConfirmedRequests() >= event.getParticipantLimit()) {
-            throw new DataConflictException("The event has reached participant limit=%s"
-                    .formatted(event.getParticipantLimit()));
-        }
-
-        List<RequestDto> rejectedRequests = new ArrayList<>();
-        for (Request request : requests) {
-            if (!request.getState().equals(RequestState.PENDING)) {
-                throw new BadRequestException("The request is not in status: PENDING");
-            }
-
-            if (dto.getStatus() == RequestState.CONFIRMED) {
-                if (event.getConfirmedRequests() >= event.getParticipantLimit()) {
-                    throw new DataConflictException("The event has reached its participant limit=%s".formatted(event.getParticipantLimit()));
-                }
-                request.setState(RequestState.CONFIRMED);
-                confirmedRequests.add(requestMapper.toDto(requestRepository.save(request)));
-            } else {
-                request.setState(RequestState.REJECTED);
-                rejectedRequests.add(requestMapper.toDto(requestRepository.save(request)));
-            }
-        }
-
-        if (Objects.equals(event.getConfirmedRequests(), event.getParticipantLimit())) {
-            for (Request request : requestRepository.findAllByState(RequestState.PENDING)) {
-                request.setState(RequestState.REJECTED);
-                rejectedRequests.add(requestMapper.toDto(requestRepository.save(request)));
-            }
-        }
-        return new RequestUpdatedResultDto(confirmedRequests, rejectedRequests);
     }
 
     @Override
@@ -250,8 +188,8 @@ public class EventServiceImpl implements EventService {
     @Override
     public List<EventShortDto> findManyForPublic(String text, List<Long> categories, Boolean paid,
                                                  Instant rangeStart, Instant rangeEnd,
-                                                 Boolean onlyAvailable, EventSort sort,
-                                                 Pageable page, HttpServletRequest request) {
+                                                 Boolean onlyAvailable, EventSort sort, Integer from, Integer size,
+                                                 HttpServletRequest request) {
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
             throw new BadRequestException("Start of the event is after end of the event");
         }
@@ -265,41 +203,34 @@ public class EventServiceImpl implements EventService {
         }
 
         statisticUtil.addView(request.getRequestURI(), request.getRemoteAddr());
-        Set<Long> ids = null;
+
+        Pageable page = PaginationUtil.getPage(from, size);
+        Set<Long> idsFilter = null;
 
         if (sort != null) {
             switch (sort) {
                 case EVENT_DATE:
-                    page = PageRequest.of(0, 10, Sort.by("eventDate").descending());
+                    page = PaginationUtil.getPage(from, size, "eventDate", Sort.Direction.DESC);
                     break;
                 case VIEWS:
-                    Map<Long, EndpointStatisticDto> allStatistic = statisticUtil.getAllStatistic(TimeUtil.instantToLocalDateTime(rangeStart));
-                    ids = allStatistic.keySet();
+                    Map<Long, EndpointStatisticDto> allStatistic = statisticUtil.getAllEventsStatistic(TimeUtil.instantToLocalDateTime(rangeStart));
+                    idsFilter = allStatistic.keySet();
                     break;
             }
         }
 
-        List<Event> events = repository.findPublished(ids, text, categories, paid, rangeStart, rangeEnd, onlyAvailable, page);
+        List<Event> events = repository.findPublished(idsFilter, text, categories, paid, rangeStart, rangeEnd, onlyAvailable, page);
         Map<Long, EndpointStatisticDto> eventsStatistic = statisticUtil.getEventsStatistic(TimeUtil.instantToLocalDateTime(rangeStart), events);
-        fillEventsViews(events, eventsStatistic);
+        statisticUtil.fillEventsViews(events, eventsStatistic);
+
         if (sort == EventSort.VIEWS) {
             events = events.stream()
                     .sorted(Comparator.comparing(Event::getViews))
                     .toList();
 
         }
-        return eventMapper.toShortDto(events);
-    }
 
-    private void fillEventsViews(Iterable<Event> events, Map<Long, EndpointStatisticDto> eventsStatistic) {
-        for (Event event : events) {
-            Long eventId = event.getId();
-            if (eventsStatistic.containsKey(eventId)) {
-                event.setViews(eventsStatistic.get(event.getId()).getHits());
-            } else {
-                event.setViews(0L);
-            }
-        }
+        return eventMapper.toShortDto(events);
     }
 
     private User checkUserIsExistsAndGet(Long userId) {
@@ -307,7 +238,7 @@ public class EventServiceImpl implements EventService {
                 -> new DataNotFoundException("User with id=%s was not found".formatted(userId)));
     }
 
-    private Event update(Event target, EventUpdateDto source) {
+    private Event fillUpdatedFields(Event target, EventUpdateDto source) {
 
         if (source.getEventDate() != null) {
             if (source.getEventDate().isBefore(LocalDateTime.now().plusHours(1))) {

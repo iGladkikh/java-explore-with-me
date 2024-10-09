@@ -1,14 +1,13 @@
 package ru.practicum.service.category;
 
-import org.springframework.data.domain.Pageable;
-import ru.practicum.dto.category.CategoryDto;
 import ru.practicum.dto.category.CategoryCreateDto;
+import ru.practicum.dto.category.CategoryDto;
 
 import java.util.List;
 
 public interface CategoryService {
 
-    List<CategoryDto> findAll(Pageable pageable);
+    List<CategoryDto> findAll(Integer from, Integer size);
 
     CategoryDto findById(Long id);
 

@@ -14,12 +14,12 @@ public final class PaginationUtil {
         return PageRequest.of(calcPageNumber(from, size), size, Sort.by(DEFAULT_SORT_DIRECTION, DEFAULT_SORTED_FIELD));
     }
 
-    public Pageable getPage(int from, int size, String sort) {
-        return PageRequest.of(calcPageNumber(from, size), size, Sort.by(DEFAULT_SORT_DIRECTION, sort));
+    public Pageable getPage(int from, int size, String field) {
+        return PageRequest.of(calcPageNumber(from, size), size, Sort.by(DEFAULT_SORT_DIRECTION, field));
     }
 
-    public Pageable getPage(int from, int size, String sort, Sort.Direction sortDirection) {
-        return PageRequest.of(calcPageNumber(from, size), size, Sort.by(sortDirection, sort));
+    public Pageable getPage(int from, int size, String field, Sort.Direction sortDirection) {
+        return PageRequest.of(calcPageNumber(from, size), size, Sort.by(sortDirection, field));
     }
 
     private int calcPageNumber(int from, int size) {

@@ -21,6 +21,4 @@ public interface UserMapper {
     UserShortDto toShortDto(User user);
 
     List<UserFullDto> toFullDto(Iterable<User> users);
-
-    List<UserShortDto> toShortDto(Iterable<User> users);
 }

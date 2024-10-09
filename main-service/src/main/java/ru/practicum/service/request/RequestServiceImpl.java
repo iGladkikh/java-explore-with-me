@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.practicum.dto.request.RequestDto;
 import ru.practicum.dto.request.RequestUpdateStatusDto;
 import ru.practicum.dto.request.RequestUpdatedResultDto;
+import ru.practicum.exception.BadRequestException;
 import ru.practicum.exception.DataConflictException;
 import ru.practicum.exception.DataNotFoundException;
 import ru.practicum.mapper.RequestMapper;
@@ -18,7 +19,9 @@ import ru.practicum.repository.RequestRepository;
 import ru.practicum.repository.UserRepository;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class RequestServiceImpl implements RequestService {
@@ -37,12 +40,58 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     public List<RequestDto> findByUserIdAndEventId(Long userId, Long eventId) {
-        return List.of();
+        checkUserIsExistsAndGet(userId);
+        checkEventIsExistsAndGet(eventId);
+
+        return mapper.toDto(requestRepository.findAllByEventId(eventId));
     }
 
     @Override
     public RequestUpdatedResultDto updateStatuses(Long userId, Long eventId, RequestUpdateStatusDto dto) {
-        return null;
+        checkUserIsExistsAndGet(userId);
+
+        Event event = checkEventIsExistsAndGet(eventId);
+        List<Request> requests = requestRepository.findAllByIdIn(dto.getRequestIds());
+
+        List<RequestDto> confirmedRequests = new ArrayList<>();
+        if (!event.getRequestModeration() || event.getParticipantLimit() == 0) {
+            for (Request request : requests) {
+                request.setState(RequestState.CONFIRMED);
+                confirmedRequests.add(mapper.toDto(requestRepository.save(request)));
+            }
+            return new RequestUpdatedResultDto(confirmedRequests, new ArrayList<>());
+        }
+
+        if (event.getConfirmedRequests() >= event.getParticipantLimit()) {
+            throw new DataConflictException("The event has reached participant limit=%s"
+                    .formatted(event.getParticipantLimit()));
+        }
+
+        List<RequestDto> rejectedRequests = new ArrayList<>();
+        for (Request request : requests) {
+            if (!request.getState().equals(RequestState.PENDING)) {
+                throw new BadRequestException("The request is not in status: PENDING");
+            }
+
+            if (dto.getStatus() == RequestState.CONFIRMED) {
+                if (event.getConfirmedRequests() >= event.getParticipantLimit()) {
+                    throw new DataConflictException("The event has reached its participant limit=%s".formatted(event.getParticipantLimit()));
+                }
+                request.setState(RequestState.CONFIRMED);
+                confirmedRequests.add(mapper.toDto(requestRepository.save(request)));
+            } else {
+                request.setState(RequestState.REJECTED);
+                rejectedRequests.add(mapper.toDto(requestRepository.save(request)));
+            }
+        }
+
+        if (Objects.equals(event.getConfirmedRequests(), event.getParticipantLimit())) {
+            for (Request request : requestRepository.findAllByState(RequestState.PENDING)) {
+                request.setState(RequestState.REJECTED);
+                rejectedRequests.add(mapper.toDto(requestRepository.save(request)));
+            }
+        }
+        return new RequestUpdatedResultDto(confirmedRequests, rejectedRequests);
     }
 
     @Override
@@ -103,5 +152,10 @@ public class RequestServiceImpl implements RequestService {
     private User checkUserIsExistsAndGet(Long userId) {
         return userRepository.findById(userId).orElseThrow(()
                 -> new DataNotFoundException("User with id=%s was not found".formatted(userId)));
+    }
+
+    private Event checkEventIsExistsAndGet(Long eventId) {
+        return eventRepository.findById(eventId).orElseThrow(()
+                -> new DataNotFoundException("Event with id=%s was not found".formatted(eventId)));
     }
 }

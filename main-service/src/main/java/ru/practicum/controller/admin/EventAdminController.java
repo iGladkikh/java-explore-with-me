@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.common.AppConstants;
-import ru.practicum.common.PaginationUtil;
 import ru.practicum.common.TimeUtil;
 import ru.practicum.dto.event.EventFullDto;
 import ru.practicum.dto.event.EventUpdateByAdminDto;
@@ -51,7 +50,7 @@ public class EventAdminController {
         return eventService.findManyForAdmin(users, states, categories,
                 TimeUtil.localDateTimeToInstant(rangeStart),
                 TimeUtil.localDateTimeToInstant(rangeEnd),
-                PaginationUtil.getPage(from, size));
+                from, size);
     }
 
     @PatchMapping("/{id}")

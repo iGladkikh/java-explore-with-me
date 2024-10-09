@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.common.AppConstants;
-import ru.practicum.common.PaginationUtil;
 import ru.practicum.common.TimeUtil;
 import ru.practicum.dto.event.EventFullDto;
 import ru.practicum.dto.event.EventShortDto;
@@ -53,8 +52,7 @@ public class EventPublicController {
         return eventService.findManyForPublic(text, categories, paid,
                 TimeUtil.localDateTimeToInstant(rangeStart),
                 TimeUtil.localDateTimeToInstant(rangeEnd),
-                onlyAvailable, sort,
-                PaginationUtil.getPage(from, size), request);
+                onlyAvailable, sort, from, size, request);
     }
 
     @GetMapping("/{id}")

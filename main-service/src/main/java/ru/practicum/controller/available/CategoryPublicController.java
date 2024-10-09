@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.common.AppConstants;
-import ru.practicum.common.PaginationUtil;
 import ru.practicum.dto.category.CategoryDto;
 import ru.practicum.service.category.CategoryService;
 
@@ -29,7 +28,7 @@ public class CategoryPublicController {
     public List<CategoryDto> findCategories(@RequestParam(defaultValue = "0") int from,
                                             @RequestParam(defaultValue = AppConstants.DEFAULT_CONTROLLER_LIST_SIZE) int size) {
         log.info("Find categories (public controller) with params: from {}, size {}", from, size);
-        return categoryService.findAll(PaginationUtil.getPage(from, size));
+        return categoryService.findAll(from, size);
     }
 
     @GetMapping("/{id}")

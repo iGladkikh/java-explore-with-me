@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.common.AppConstants;
-import ru.practicum.common.PaginationUtil;
 import ru.practicum.dto.event.EventCreateDto;
 import ru.practicum.dto.event.EventFullDto;
 import ru.practicum.dto.event.EventShortDto;
@@ -50,7 +49,7 @@ public class EventPrivateController {
                                           @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
                                           @RequestParam(defaultValue = AppConstants.DEFAULT_CONTROLLER_LIST_SIZE) @Positive Integer size) {
         log.info("Find events (private controller) with params: userId={}, from {}, size {}", userId, from, size);
-        return eventService.findManyForUser(userId, PaginationUtil.getPage(from, size));
+        return eventService.findManyForUser(userId, from, size);
     }
 
     @GetMapping("/{eventId}")
@@ -76,13 +75,13 @@ public class EventPrivateController {
     @GetMapping("/{eventId}/requests")
     public List<RequestDto> findEventRequests(@PathVariable Long userId, @PathVariable Long eventId) {
         log.info("Find event requests (private controller) with params: userId={}, eventId {}", userId, eventId);
-        return eventService.getEventRequests(userId, eventId);
+        return requestService.findByUserIdAndEventId(userId, eventId);
     }
 
     @PatchMapping("/{eventId}/requests")
     public RequestUpdatedResultDto changeRequestStatus(@PathVariable Long userId, @PathVariable Long eventId,
                                                        @RequestBody RequestUpdateStatusDto dto) {
         log.info("Change event request status (private controller) with params: userId={}, eventId={}, dto {}", userId, eventId, dto);
-        return eventService.updateRequestStatus(userId, eventId, dto);
+        return requestService.updateStatuses(userId, eventId, dto);
     }
 }
