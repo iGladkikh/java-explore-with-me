@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.practicum.EndpointRequestDto;
 import ru.practicum.EndpointStatisticDto;
+import ru.practicum.exception.InvalidDataException;
 import ru.practicum.mapper.EndpointRequestMapper;
 import ru.practicum.repository.StatsRepository;
 
@@ -27,8 +28,7 @@ public class StatsServiceImpl implements StatsService {
     @Override
     public List<EndpointStatisticDto> getEndpointStatistic(Instant start, Instant end, Boolean useUniqueIp, String[] endpointUris) {
         if (start.plusMillis(1).isAfter(end)) {
-            throw new RuntimeException(
-                    String.format("Время начала периода выборки %s должна предшествовать времени окончания %s", start, end));
+            throw new InvalidDataException("Время начала периода выборки %s должна предшествовать времени окончания %s".formatted(start, end));
         }
 
         if (endpointUris.length == 0) {

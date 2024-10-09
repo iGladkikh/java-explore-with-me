@@ -16,7 +16,6 @@ public class ErrorHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleInvalidDatesException(InvalidDataException e) {
-        return new ErrorResponse("FORBIDDEN", "For the requested operation the conditions are not met.",
-                e.getMessage(), LocalDateTime.now());
+        return new ErrorResponse("BAD_REQUEST", "Incorrectly made request", e.getMessage(), LocalDateTime.now());
     }
 }
