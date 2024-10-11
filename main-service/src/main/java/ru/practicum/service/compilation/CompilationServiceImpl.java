@@ -2,6 +2,7 @@ package ru.practicum.service.compilation;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.common.PaginationUtil;
 import ru.practicum.common.StatisticUtil;
 import ru.practicum.dto.compilation.CompilationCreateDto;
@@ -17,6 +18,7 @@ import ru.practicum.repository.EventRepository;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class CompilationServiceImpl implements CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
@@ -43,6 +45,7 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
+    @Transactional
     public CompilationDto create(CompilationCreateDto dto) {
         Compilation compilation = mapper.toModel(dto);
 
@@ -62,6 +65,7 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
+    @Transactional
     public CompilationDto update(Long id, CompilationUpdateDto dto) {
 
         Compilation oldCompilation = compilationRepository.findById(id).orElseThrow(()
@@ -87,6 +91,7 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         findById(id);
         compilationRepository.deleteById(id);

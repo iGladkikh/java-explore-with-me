@@ -3,6 +3,7 @@ package ru.practicum.service.user;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.common.PaginationUtil;
 import ru.practicum.dto.user.UserCreateDto;
 import ru.practicum.dto.user.UserFullDto;
@@ -14,6 +15,7 @@ import ru.practicum.repository.UserRepository;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
     private final UserRepository repository;
     private final UserMapper mapper;
@@ -25,6 +27,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserFullDto create(UserCreateDto dto) {
         checkForExistsByEmail(dto.getEmail());
         return mapper.toFullDto(repository.save(mapper.toModel(dto)));
@@ -40,6 +43,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         checkForExistsById(id);
         repository.deleteById(id);

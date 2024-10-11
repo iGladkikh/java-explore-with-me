@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -67,9 +66,14 @@ public class StatisticUtil {
         for (Event event : events) {
             endpointUris.add(getEventEndpointUri(event.getId()));
         }
-        return Objects.requireNonNull(statClient.getEndpointsStatistic(start, LocalDateTime.now().plusSeconds(1L),
-                                endpointUris.toArray(new String[0]), true)
-                        .getBody()).stream()
+
+        List<EndpointStatisticDto> statistic = statClient.getEndpointsStatistic(start, LocalDateTime.now().plusSeconds(1L),
+                endpointUris.toArray(new String[0]), true).getBody();
+
+        if (statistic == null) {
+            return Collections.emptyMap();
+        }
+        return statistic.stream()
                 .collect(Collectors.toMap(s -> getEventIdFromEndpointUri(s.getUri()), Function.identity()));
     }
 

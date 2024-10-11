@@ -1,10 +1,13 @@
 package ru.practicum.service.category;
 
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.common.PaginationUtil;
 import ru.practicum.dto.category.CategoryCreateDto;
 import ru.practicum.dto.category.CategoryDto;
@@ -17,6 +20,7 @@ import ru.practicum.repository.CategoryRepository;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository repository;
     private final CategoryMapper mapper;
@@ -41,6 +45,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.SUPPORTS)
     public CategoryDto create(CategoryCreateDto dto) {
         try {
             return mapper.toDto(repository.save(mapper.toModel(dto)));
@@ -50,6 +55,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.SUPPORTS)
     public void delete(Long id) {
         try {
             repository.deleteById(id);
@@ -61,6 +67,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.SUPPORTS)
     public CategoryDto update(Long id, CategoryCreateDto dto) {
         Category category = repository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("Category with id=%s was not found".formatted(id)));
@@ -72,7 +79,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         try {
             return mapper.toDto(repository.save(category));
-        } catch (DataIntegrityViolationException e) {
+        } catch (DataIntegrityViolationException | ConstraintViolationException e) {
             throw new DataConflictException("This category name is already exists");
         }
     }

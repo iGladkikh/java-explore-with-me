@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.EndpointStatisticDto;
 import ru.practicum.common.PaginationUtil;
 import ru.practicum.common.StatisticUtil;
@@ -20,7 +21,6 @@ import ru.practicum.exception.BadRequestException;
 import ru.practicum.exception.DataNotFoundException;
 import ru.practicum.exception.ForbiddenException;
 import ru.practicum.mapper.EventMapper;
-import ru.practicum.mapper.RequestMapper;
 import ru.practicum.model.Category;
 import ru.practicum.model.Event;
 import ru.practicum.model.Location;
@@ -30,7 +30,6 @@ import ru.practicum.model.enums.EventState;
 import ru.practicum.repository.CategoryRepository;
 import ru.practicum.repository.EventRepository;
 import ru.practicum.repository.LocationRepository;
-import ru.practicum.repository.RequestRepository;
 import ru.practicum.repository.UserRepository;
 
 import java.time.Instant;
@@ -42,16 +41,14 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class EventServiceImpl implements EventService {
     private final EventRepository repository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final RequestRepository requestRepository;
     private final LocationRepository locationRepository;
     private final StatisticUtil statisticUtil;
     private final EventMapper eventMapper;
-    private final RequestMapper requestMapper;
-
 
     @Override
     public List<EventFullDto> findManyForAdmin(List<Long> users, List<EventState> states, List<Long> categories,
@@ -75,6 +72,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public EventFullDto updateByAdmin(Long eventId, EventUpdateByAdminDto dto) {
         Event oldEvent = checkEventIsExistsAndGet(eventId);
 
@@ -111,6 +109,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public EventFullDto createByUser(Long userId, EventCreateDto dto) {
         User user = checkUserIsExistsAndGet(userId);
         Category category = checkCategoryIsExistsAndGet(dto.getCategory());
@@ -148,6 +147,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public EventFullDto updateByUser(Long userId, Long eventId, EventUpdateByUserDto dto) {
         checkUserIsExistsAndGet(userId);
 

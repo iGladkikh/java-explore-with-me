@@ -2,6 +2,7 @@ package ru.practicum.service.request;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.dto.request.RequestDto;
 import ru.practicum.dto.request.RequestUpdateStatusDto;
 import ru.practicum.dto.request.RequestUpdatedResultDto;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
+@Transactional(readOnly = true)
 public class RequestServiceImpl implements RequestService {
     private final RequestRepository requestRepository;
     private final UserRepository userRepository;
@@ -47,6 +49,7 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
+    @Transactional
     public RequestUpdatedResultDto updateStatuses(Long userId, Long eventId, RequestUpdateStatusDto dto) {
         checkUserIsExistsAndGet(userId);
 
@@ -101,6 +104,7 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
+    @Transactional
     public RequestDto create(Long userId, Long eventId) {
         User requester = checkUserIsExistsAndGet(userId);
 
@@ -139,6 +143,7 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
+    @Transactional
     public RequestDto cancel(Long userId, Long requestId) {
         checkUserIsExistsAndGet(userId);
 
