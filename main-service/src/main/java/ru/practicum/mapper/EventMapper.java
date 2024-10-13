@@ -6,6 +6,7 @@ import org.mapstruct.MappingConstants;
 import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 import ru.practicum.common.TimeUtil;
+import ru.practicum.dto.event.EventBaseDto;
 import ru.practicum.dto.event.EventCreateDto;
 import ru.practicum.dto.event.EventFullDto;
 import ru.practicum.dto.event.EventShortDto;
@@ -41,6 +42,8 @@ public interface EventMapper {
 
     @Mapping(target = "eventDate", source = "eventDate", qualifiedByName = "instantToLocalDateTime")
     EventShortDto toShortDto(Event event);
+
+    EventBaseDto toBaseDto(Event event);
 
     List<EventFullDto> toFullDto(Iterable<Event> events);
 

@@ -11,9 +11,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.common.AppConstants;
 import ru.practicum.common.TimeUtil;
+import ru.practicum.dto.comment.CommentShortDto;
 import ru.practicum.dto.event.EventFullDto;
 import ru.practicum.dto.event.EventShortDto;
 import ru.practicum.model.enums.EventSort;
+import ru.practicum.service.comment.CommentService;
 import ru.practicum.service.event.EventService;
 
 import java.time.LocalDateTime;
@@ -24,10 +26,12 @@ import java.util.List;
 @RequestMapping(path = "/events")
 public class EventPublicController {
     private final EventService eventService;
+    private final CommentService commentService;
 
     @Autowired
-    public EventPublicController(EventService eventService) {
+    public EventPublicController(EventService eventService, CommentService commentService) {
         this.eventService = eventService;
+        this.commentService = commentService;
     }
 
     @GetMapping
@@ -45,7 +49,7 @@ public class EventPublicController {
                                                   @RequestParam(defaultValue = "0") Integer from,
                                                   @RequestParam(defaultValue = AppConstants.DEFAULT_CONTROLLER_LIST_SIZE) Integer size,
                                                   HttpServletRequest request) {
-        log.info("Find events with params: text={}, categories={}, paid={}, rangeStart={}, " +
+        log.info("Find events (public controller) with params: text={}, categories={}, paid={}, rangeStart={}, " +
                         "rangeEnd={}, onlyAvailable={}, sort={}, from={}, size={}",
                 text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size);
 
@@ -57,7 +61,15 @@ public class EventPublicController {
 
     @GetMapping("/{id}")
     public EventFullDto findEvent(@PathVariable Long id, HttpServletRequest request) {
-        log.info("Find event with id={}", id);
+        log.info("Find event (public controller) with id={}", id);
         return eventService.findByIdForPublic(id, request);
+    }
+
+    @GetMapping("/{id}/comments")
+    public List<CommentShortDto> findEventComments(@PathVariable Long id,
+                                                   @RequestParam(defaultValue = "0") Integer from,
+                                                   @RequestParam(defaultValue = AppConstants.DEFAULT_CONTROLLER_LIST_SIZE) Integer size) {
+        log.info("Find comments (public controller) for event with params: id={}, from={}, size={}", id, from, size);
+        return commentService.findAllByEventIdForPublic(id, from, size);
     }
 }
